@@ -62,6 +62,10 @@ public class GameMaster : MonoBehaviour {
 
 		//Confirms that a save has been made
 		PlayerPrefs.SetInt ("SaveData", 1);
+
+		//Save collections list
+		Serializer.Save("subjectsCaught",player.GetComponent<PictureTaker>().collectionArray);
+
 	}
 
 	public void EndLevel () {
@@ -85,6 +89,9 @@ public class GameMaster : MonoBehaviour {
 
 		subjectsCaptured = player.GetComponent<PictureTaker>().newSubjectsCaptured.Count;
 		GameObject.Find ("subjectsCaughtText").GetComponent<Text> ().text = "Subjects Caught: " + subjectsCaptured;
+
+		//Save game
+		EndLevelSaveData ();
 
 	}
 

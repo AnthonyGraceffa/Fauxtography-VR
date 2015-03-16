@@ -23,6 +23,10 @@ public class MainMenu : MonoBehaviour {
 	public GameObject mainMenuCamPoint;
 	public GameObject collectionCamPoint;
 
+	//Collections
+	public GameObject testWorldCollection;
+	public GameObject forestCollection;
+
 	float selectTimer = 0;
 
 	// Use this for initialization
@@ -95,6 +99,18 @@ public class MainMenu : MonoBehaviour {
 					case "CollectionBack":
 						GoToMainMenu();
 						break;
+					
+					case "testWorldCollection":
+						testWorldCollection.SetActive(true);
+						break;
+
+					case "ForestCollection":
+						testWorldCollection.SetActive(false);
+						break;
+
+					case "CanyonCollection":
+						testWorldCollection.SetActive(false);
+						break;
 					}
 
 				}
@@ -108,6 +124,11 @@ public class MainMenu : MonoBehaviour {
 				selectBar.SetActive(false);
 			}
 
+		}
+
+		if (Input.GetKeyDown ("k")) {
+			ClearSaveData();
+			Debug.Log ("MainMenu:Update() - Reset Save Data");
 		}
 	}
 
@@ -156,20 +177,30 @@ public class MainMenu : MonoBehaviour {
 	//If there is no Save data create a blank save
 	public void InitFirstSave () {
 		if (!PlayerPrefs.HasKey ("SaveData")) {
-			List<SnapShot> allTestWorldSnaps = new List<SnapShot>();
-			List<SnapShot> allForestSnaps = new List<SnapShot>();
-			List<SnapShot> allCanyonSnaps = new List<SnapShot>();
+			List<SnapShot> allTestWorldSnaps = new List<SnapShot> ();
+			List<SnapShot> allForestSnaps = new List<SnapShot> ();
+			List<SnapShot> allCanyonSnaps = new List<SnapShot> ();
 			bool[] subjectsCaught = new bool[100];
 
-			Serializer.Save("allTestWorldSnaps", allTestWorldSnaps);
-			Serializer.Save("allForestSnaps", allForestSnaps);
-			Serializer.Save("allCanyonSnaps", allCanyonSnaps);
-			Serializer.Save("subjectsCaught",subjectsCaught);
+			Serializer.Save ("allTestWorldSnaps", allTestWorldSnaps);
+			Serializer.Save ("allForestSnaps", allForestSnaps);
+			Serializer.Save ("allCanyonSnaps", allCanyonSnaps);
+			Serializer.Save ("subjectsCaught", subjectsCaught);
 
 		}
 	}
 
+	//Saves a clean file
+	public void ClearSaveData () {
+		List<SnapShot> allTestWorldSnaps = new List<SnapShot> ();
+		List<SnapShot> allForestSnaps = new List<SnapShot> ();
+		List<SnapShot> allCanyonSnaps = new List<SnapShot> ();
+		bool[] subjectsCaught = new bool[100];
+		
+		Serializer.Save ("allTestWorldSnaps", allTestWorldSnaps);
+		Serializer.Save ("allForestSnaps", allForestSnaps);
+		Serializer.Save ("allCanyonSnaps", allCanyonSnaps);
+		Serializer.Save ("subjectsCaught", subjectsCaught);
 
-
-
+	}
 }

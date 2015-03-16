@@ -16,6 +16,7 @@ public class PictureTaker : MonoBehaviour {
 
 	public RenderTexture overviewTexture;
 	public string path = "";
+	public bool[] collectionArray;
 
 
 	// Used for initialization
@@ -24,7 +25,7 @@ public class PictureTaker : MonoBehaviour {
 		GM = GameMaster.GetComponent<GameMaster> ();
 		snapsTakenThisLevel = new List<SnapShot> ();
 		subjectsInLastSnap = new List<string> ();
-
+		collectionArray = (bool[])Serializer.Load ("subjectsCaught");
 		SnapShotCam.gameObject.SetActive (false);
 
 	}
@@ -146,6 +147,7 @@ public class PictureTaker : MonoBehaviour {
 			if (Physics.Raycast(ray, out hit, 25)) {
 				if(hit.collider.gameObject.tag == "SnapTarget" && hit.collider != null) {
 					newSnap.subjectsInFrame.Add(new SnapShot.SnapSubject(curTarget.name,towardsTarget.magnitude,isCentered));
+					UpdateCollectionArray(curTarget.name);
 				}
 			}
 		}
@@ -188,5 +190,23 @@ public class PictureTaker : MonoBehaviour {
 				newSubjectsCaptured.Add(subject.name);
 			}
 		}
+	}
+
+	//If a new subject is caught save it to areray
+	void UpdateCollectionArray (string subject) {
+		int num = 0;
+		switch (subject) {
+			case "BigRedCube":
+				num = 1;
+				break;
+			case "BigBlueCube":
+				num = 2;
+				break;
+			default:
+				num = 0;
+				break;
+		}
+		collectionArray [num] = true;
+
 	}
 }
