@@ -19,6 +19,7 @@ public class SnapShot  {
 	}
 
 	//Holds info for snap subjects caught in a snapshot
+	[System.Serializable]
 	public class SnapSubject {
 		public string name;			//Name of subject
 		public bool centered;		//If subject is in center of picture

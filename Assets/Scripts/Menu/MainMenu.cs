@@ -7,9 +7,10 @@ using System.Collections;
 
 public class MainMenu : MonoBehaviour {
 
+	//Canvasies
 	GameObject mainMenuCanvas;
 	GameObject collectionCanvas;
-	Color blackColor;
+	GameObject albumCanvas;
 	GameObject blackCover;
 
 	GameObject OVRCam;
@@ -22,11 +23,21 @@ public class MainMenu : MonoBehaviour {
 	//Camera Points
 	public GameObject mainMenuCamPoint;
 	public GameObject collectionCamPoint;
+	public GameObject albumCamPoint;
 
 	//Collections
 	public GameObject testWorldCollection;
 	public GameObject forestCollection;
 
+	//Album Image Review
+	public GameObject reviewIMGPrefab;
+	GameObject albumPreview;
+	string currentAlbumPage;
+	public float scrollSpeed = 1f;
+	GameObject reviewIMGSpawn;
+	bool visitedAlbum = false;					//This is temp until more levels are in the game
+
+	//Menu Other
 	float selectTimer = 0;
 
 	// Use this for initialization
@@ -35,8 +46,10 @@ public class MainMenu : MonoBehaviour {
 		//If no game data exists, create it
 		InitFirstSave ();
 
+		//set gameobjects
+		reviewIMGSpawn = GameObject.Find ("albumSpawn");
+
 		//Initialize black screen cover for fade effect
-		blackColor = GameObject.Find ("blackCover").GetComponent<Image> ().color;
 		blackCover = GameObject.Find ("blackCover");
 		OVRCam = GameObject.Find ("OVRCameraRig");
 
@@ -47,9 +60,12 @@ public class MainMenu : MonoBehaviour {
 		//Set and Disable all canvasies but main menu
 		mainMenuCanvas = GameObject.Find ("MenuCanvas");
 		collectionCanvas = GameObject.Find ("CollectionCanvas");
+		albumCanvas = GameObject.Find ("AlbumCanvas");
+		albumPreview = GameObject.Find("albumPreview");
+		albumCanvas.SetActive(false);
 		collectionCanvas.SetActive (false);
 
-		//begin fade from black
+		//Begin fade from black
 		StartCoroutine (fadeFromBlack());
 	}
 	
@@ -77,7 +93,13 @@ public class MainMenu : MonoBehaviour {
 					switch (lastButtonHovered.name) {
 
 					case "TestWorldButton":
-						StartCoroutine(loadLevel("testLevel02"));
+						PlayerPrefs.SetInt("loadLevel",1);
+						StartCoroutine(loadLevel("Loading"));
+						break;
+
+					case "Bidwell Button":
+						PlayerPrefs.SetInt("loadLevel",2);
+						StartCoroutine(loadLevel("Loading"));
 						break;
 
 					case "Quit":
@@ -85,7 +107,7 @@ public class MainMenu : MonoBehaviour {
 						break;
 
 					case "AlbumButton":
-
+						GoToAlbum();
 						break;
 
 					case "CollectionButton":
@@ -101,21 +123,54 @@ public class MainMenu : MonoBehaviour {
 						break;
 					
 					case "testWorldCollection":
+						forestCollection.SetActive(false);
 						testWorldCollection.SetActive(true);
 						break;
 
-					case "ForestCollection":
+					case "BidwellCollection":
 						testWorldCollection.SetActive(false);
+						forestCollection.SetActive(true);
 						break;
 
 					case "CanyonCollection":
+						forestCollection.SetActive(false);
 						testWorldCollection.SetActive(false);
 						break;
+					case "albumBidwell":
+						loadBidwellSnapThumbs();
+						break;
+					case "albumBack":
+						GoToMainMenu();
+						break;
+					
 					}
 
+
+				}
+
+				switch(lastButtonHovered.name){
+				case "scrollLeft":
+					reviewIMGSpawn.transform.Translate(Vector3.left * Time.deltaTime * scrollSpeed);
+					//if the select bar fills up the snaps scroll  faster
+					if(selectTimer > 4) {
+						scrollSpeed = 3;
+					}
+					break;
+					
+				case "scrollRight":
+					reviewIMGSpawn.transform.Translate(Vector3.right * Time.deltaTime * scrollSpeed);
+					if(selectTimer > 4) {
+						scrollSpeed = 3;
+					}
+					break;
 				}
 			}
+			if(hit.collider.gameObject.tag == "UIAlbum" && hit.collider != null) {
+				ExecuteEvents.Execute(hit.collider.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+				lastButtonHovered = hit.collider.gameObject;
 
+				albumPreview.GetComponent<Image>().sprite = hit.collider.GetComponent<Image>().sprite;
+			}
 			//if the user looks away from a button reset the timer.
 			if(hit.collider.gameObject.tag == "UIBack" && hit.collider != null) {
 				ExecuteEvents.Execute(lastButtonHovered, pointer, ExecuteEvents.pointerExitHandler);
@@ -143,11 +198,23 @@ public class MainMenu : MonoBehaviour {
 
 	void GoToMainMenu () {
 		//Set correct canvas on
+		albumCanvas.SetActive(false);
 		collectionCanvas.SetActive (false);
 		mainMenuCanvas.SetActive (true);
 		
 		iTween.MoveTo (OVRCam, mainMenuCamPoint.transform.position, 10f);
 		//iTween.LookTo (OVRCam, mainMenuCanvas.transform.position, 10f);
+	}
+
+	void GoToAlbum () {
+		mainMenuCanvas.SetActive (false);
+		albumCanvas.SetActive(true);
+		if(!visitedAlbum){
+			StartCoroutine(loadBidwellSnapThumbs());
+			visitedAlbum = true;
+		}
+
+		iTween.MoveTo (OVRCam, albumCamPoint.transform.position, 10f);
 	}
 
 	//Fade in from black at start
@@ -161,7 +228,7 @@ public class MainMenu : MonoBehaviour {
 		blackCover.SetActive (false);
 	}
 
-	//Fade to black and laod scene
+	//Fade to black and load scene
 	IEnumerator loadLevel (string scene) {
 		blackCover.SetActive (true);
 		while (blackCover.GetComponent<Image>().color.a > 254f) {
@@ -203,4 +270,48 @@ public class MainMenu : MonoBehaviour {
 		Serializer.Save ("subjectsCaught", subjectsCaught);
 
 	}
+
+	//Displays line of snaps on slbum page to scroll through
+	public IEnumerator loadBidwellSnapThumbs () {
+
+		//create lists of snaps from snaps stored in PP
+		List<SnapShot> bidwellSnaps = Serializer.Load("allForestSnaps") as List<SnapShot>;
+
+		bool firstImage = true;
+		float newIMGoffset = 0;		//how far right to spawn the next thumb
+		Transform spawnTrans = reviewIMGSpawn.transform;		//position to spawn 
+		foreach (SnapShot snap in bidwellSnaps) {
+			
+			//Find all screenshots on file and load their images as sprites
+			string fileName = snap.fileName;
+			Byte[] bytes = System.IO.File.ReadAllBytes (fileName);
+			Texture2D newImg = new Texture2D (1920, 1080);
+			newImg.LoadImage (bytes);
+			
+			//Spawn image and then add 200 to offset so the next one appears to the right of the last one
+			Vector3 newPos = reviewIMGSpawn.transform.position;
+			newPos.x = newPos.x + newIMGoffset;
+			newPos.z = 0;
+			GameObject newReviewIMG = Instantiate(reviewIMGPrefab,newPos,Quaternion.identity) as GameObject;
+			newReviewIMG.transform.SetParent(reviewIMGSpawn.transform);
+			newReviewIMG.transform.localPosition = newPos;
+			newReviewIMG.transform.Rotate(new Vector3(0,90,0));
+			newReviewIMG.transform.localScale /=6;
+			
+			//make sprite with new texture from file
+			newReviewIMG.GetComponent<Image> ().sprite = Sprite.Create (newImg, new Rect (0, 0, 1920, 1080), new Vector2 (1, 1));
+			newIMGoffset += 140;
+
+			//if were on the first element in the list, set the first album preview to the image
+			if(firstImage){
+				albumPreview.GetComponent<Image>().sprite = newReviewIMG.GetComponent<Image>().sprite;
+				firstImage = false;
+			}
+			
+		}
+
+		yield return new WaitForEndOfFrame();
+	}
+
+
 }

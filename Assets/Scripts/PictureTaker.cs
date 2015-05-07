@@ -18,6 +18,18 @@ public class PictureTaker : MonoBehaviour {
 	public string path = "";
 	public bool[] collectionArray;
 
+	//Black thingies for snap animation
+	GameObject topBlackSnapper;
+	GameObject bottomBlackSnapper;
+	Animation snapAnimation;
+
+	//Audio
+	AudioSource speaker;
+
+	//Game States
+	bool canSnap = true;
+
+
 
 	// Used for initialization
 	void Awake () {
@@ -28,32 +40,33 @@ public class PictureTaker : MonoBehaviour {
 		collectionArray = (bool[])Serializer.Load ("subjectsCaught");
 		SnapShotCam.gameObject.SetActive (false);
 
-	}
+		//hide and set snap animation thingies
+		topBlackSnapper = GameObject.Find ("snapAni1");
+		bottomBlackSnapper = GameObject.Find ("snapAni2");
+		topBlackSnapper.SetActive (false);
+		bottomBlackSnapper.SetActive (false);
+		snapAnimation = GameObject.Find ("UIPhotoHUD").GetComponent<Animation> ();
 
-	//Called once per frame
-	void Update () {
-		//for debugging, prints file name of last snap
-		if (Input.GetButtonDown ("Jump")) {
-			//Debug.Log (snapsTakenThisLevel[snapsTakenThisLevel.Count -1].fileName);
-			int count = 0;
-			foreach (SnapShot curSnap in snapsTakenThisLevel){
-				count ++;
-				Debug.Log("Snap Number: " + count);
-				foreach (SnapShot.SnapSubject curSubject in curSnap.subjectsInFrame) {
-					Debug.Log ("Name: " + curSubject.name);
-				}
-			}
-		}
+		//Audio
+		speaker = GetComponent<AudioSource> ();
+
 	}
 
 	// LateUpdate is called once per frame after update
 	void LateUpdate () {
 
 		//If player clicks, take a snapshot
-		if(Input.GetButtonDown("Fire1")){
-			StartCoroutine(TakeScreenShot());
-			Debug.Log("PictureTaker:LateUpdate - Took Snap!");
+		if(Input.GetButtonDown("Fire1") || Input.GetButtonDown("Jump")){
+			//CanSnap check doesn't do anything right now
+			if(canSnap){
+				canSnap = false;
+				StartCoroutine(playSnapAnimation());
+				speaker.Play();
+				StartCoroutine(TakeScreenShot());
+				Debug.Log("PictureTaker:LateUpdate - Took Snap!");
+			}
 		}
+
 	}
 
 	//Create a new Vector3 inbetween both cameras
@@ -104,22 +117,22 @@ public class PictureTaker : MonoBehaviour {
 		
 		// Save in memory
 		string filename = fileName(Convert.ToInt32(imageOverview.width), Convert.ToInt32(imageOverview.height));
-		path = Application.persistentDataPath + "/Snapshots/" + filename;
+		path = Application.persistentDataPath  + filename;
 
 
 		System.IO.File.WriteAllBytes(path, bytes);
 
 		//Create game data
-		SnapShot newSnap = new SnapShot (Application.persistentDataPath + "/Snapshots/" + filename, "TestLevel");
+		SnapShot newSnap = new SnapShot (Application.persistentDataPath  + filename, "Bidwell");
 		newSnap.capturedSubjects = subjectsInLastSnap;
 
 		//Fill targetsInFrame with every gameobject marked as a snap target that a camera can see
 		List<GameObject> targetsInFrame = CalculateSnapSubjects ();
 
 		//Vectors for calculating angle of picture targets
-		Vector3 leftCamVector = -SnapShotCam.transform.right;
+		//Vector3 leftCamVector = -SnapShotCam.transform.right;
 		Vector3 forwardCamVector = SnapShotCam.transform.forward;
-		Vector3 downCamVector = -SnapShotCam.transform.up;
+		//Vector3 downCamVector = -SnapShotCam.transform.up;
 		Vector3 towardsTarget = Vector3.zero;
 
 		//Iterate through targets in frame list and find the angles and name for each one, then add it
@@ -144,12 +157,14 @@ public class PictureTaker : MonoBehaviour {
 
 
 			//if ray hits snap target then it is in LoS
-			if (Physics.Raycast(ray, out hit, 25)) {
+			if (Physics.Raycast(ray, out hit)) {
 				if(hit.collider.gameObject.tag == "SnapTarget" && hit.collider != null) {
+					Debug.Log ("PictureTaker: TakeScreenShot() - subject has been hit by ray");
 					newSnap.subjectsInFrame.Add(new SnapShot.SnapSubject(curTarget.name,towardsTarget.magnitude,isCentered));
 					UpdateCollectionArray(curTarget.name);
 				}
 			}
+
 		}
 
 
@@ -196,17 +211,72 @@ public class PictureTaker : MonoBehaviour {
 	void UpdateCollectionArray (string subject) {
 		int num = 0;
 		switch (subject) {
-			case "BigRedCube":
-				num = 1;
-				break;
-			case "BigBlueCube":
-				num = 2;
-				break;
-			default:
-				num = 0;
-				break;
+		case "Puppy":
+			num = 1;
+			this.GetComponent<Traveler>().finishTutorial();
+			break;
+		case "Seagull":
+			num = 2;
+			break;
+		case "Metal Squirrel":
+			num = 3;
+			break;
+		case "Brown Squirrel":
+			num = 4;
+			break;
+		case "Brown Horse":
+			num = 5;
+			break;
+		case "Brown Bear":
+			num = 6;
+			break;
+		case "Magpie":
+			num = 7;
+			break;
+		case "Deer":
+			num = 8;
+			break;
+		case "Doe":
+			num = 9;
+			break;
+		case "Shiba Puppy":
+			num = 10;
+			break;
+		case "Eagle":
+			num = 11;
+			break;
+		//greyhound
+		case "Greyhound":
+			num = 12;
+			break;
+		//Molten Dog
+		case "spine1_loResSpine5":
+			num = 13;
+			break;
+		case "TyannosaurusRex":
+			num = 14;
+			break;
+		default:
+			num = 0;
+			break;
 		}
 		collectionArray [num] = true;
 
 	}
+
+	//Plays picture snap animation
+	IEnumerator playSnapAnimation () {
+		topBlackSnapper.SetActive (true);
+		bottomBlackSnapper.SetActive (true);
+
+		snapAnimation.Play ();
+		while (snapAnimation.isPlaying) {
+			yield return new WaitForEndOfFrame ();
+		}
+		canSnap = true;
+		topBlackSnapper.SetActive (false);
+		bottomBlackSnapper.SetActive (false);
+
+	}
+
 }

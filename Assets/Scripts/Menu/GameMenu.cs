@@ -52,6 +52,21 @@ public class GameMenu : MonoBehaviour {
 						case "toMenuButton":
 							Application.LoadLevel("MainMenu");
 							break;
+						case "pathToPeak":
+							Debug.Log("GameMenu: Update() - Player Selected to move to peak");
+							this.GetComponent<Animator>().SetInteger("pathNumber",2);
+							GameObject.Find("GameMaster").GetComponent<GameMaster>().reEnableGameplay();
+							//play the next path animation
+							
+							break;
+
+						case "pathToTutorial":
+							Debug.Log("GameMenu: Update() - Player Selected to start tutorial");
+							GameObject.Find("GameMaster").GetComponent<GameMaster>().reEnableGameplay();
+							//play the next path animation
+							this.GetComponent<Animator>().SetInteger("pathNumber",2);
+							GameObject.Find ("tutSound").GetComponent<TutorialSound>().play2();
+							break;
 					}
 					
 				}
